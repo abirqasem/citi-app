@@ -1,0 +1,11 @@
+<script>
+google.script.run.withSuccessHandler(show_ui).get_initial_ui(0);
+
+function show_ui(ui){
+  
+ 
+  document.getElementById("inner_heading").innerHTML=ui["header_html"];
+  document.getElementById("inner_input").innerHTML=ui["body_html"];
+
+}
+</script>

@@ -1,0 +1,315 @@
+<script>
+
+/* Setting the session variables */
+
+const START =1;
+const END =100;
+
+var not_done = "";
+for (var i=START;i<=END;i++) {
+  not_done += ","+i;
+}
+not_done =not_done.substr (1, not_done.length);
+sessionStorage.setItem ('not_done', not_done)
+
+var current_correct="";
+var current_row;
+
+/* End setting */
+
+/*  convenient short cut */
+var $$ = function (id) {return document.getElementById(id)} 
+
+
+
+/*
+
+Returns the next question to be displayed or played as an audio. We store all the not_done question numbers in sessionStorage (initially it is 1 to 100). 
+We need to store them as a string (because sessionStorage do not support arrays). To get to the next question we "roll the dice", and get a random *index*
+for our pseudo array. We remove the *item* that is pointed by the index by splicing the array on that index. 
+We store back the new array to the sessionStorage 
+
+##followup with an example run of the code with 10 numbers
+
+*/
+
+function get_next () {
+  console.log("hello")
+  var not_done_str = sessionStorage.getItem("not_done"); 
+  var not_done_arr = not_done_str.split(",")
+  
+  var next_index =  Math.floor(Math.random() * (not_done_arr.length-1)) ; 
+  
+  /* update the session storage */
+  var removed = not_done_arr.splice (next_index,1)
+  not_done_str =  not_done_arr.toString();
+  var not_done_str = sessionStorage.setItem("not_done", not_done_str); 
+  
+  
+   return removed; // is an array with one element, that is how splice works
+}
+  
+
+function get_last () {
+  if (sessionStorage.getItem ('last'))
+   return sessionStorage.getItem ('last');
+  else {
+    var next = get_next();
+  
+     sessionStorage.setItem ('last', next);
+     
+  return next;
+  
+  }
+  
+   
+}
+
+
+function add_last (value) {
+  sessionStorage.setItem ('last', value)
+  
+}
+
+
+/* 
+
+
+Shows the next question to the user. A next is a random question that has not been used in the current sesssion.
+To see how the next is computed please see the get_next function.
+
+flag 1 for spanish and 2 for english. what determines if we want a voice prompt or mcq
+
+1. We get the next question and determine the language. We do some book keeping.  
+2. 
+
+
+
+*/
+
+
+function play_next_question(flag,what){
+
+   
+  
+  var el; // stores the language prefix of the audio files
+
+  if (flag ==1 || flag == 2) {
+      var next_item = get_next()
+      var next;
+      if (next_item.length !=0){
+        next = next_item[0];
+        add_last (next);
+        
+        }
+        else {
+          next =0;// you are done
+        
+        }
+        
+        el = flag ==1 ? 'sq':'q'; // sq means spanish question 
+        sessionStorage.setItem ('language', el);
+  }
+  
+  else { // repeat
+      var next = get_last();
+      el = sessionStorage.getItem ('language') ? sessionStorage.getItem ('language'):'q'
+  
+  }
+  
+ 
+ /* We request the raw data for the question/answer etc from Google spreadsheet once we get it we play or display it */
+
+ 
+  
+ google.script.run.withSuccessHandler (function (item) {
+ 
+      var resp_div_html ="<div id='resp_div'></div>"; // a div for giving feedback if you have gotten the MCQ right or not
+      
+      if (item) {
+         var audio_absent = (next ==20 || next ==23 || next ==43 || next == 44);
+         if (what =="v") {
+            if (audio_absent){
+              voice_prompt({synth:true,what:item['options'][0], row_num:item['row_num'] })
+               $$ ('out1').innerHTML ="<h3>Audio Unavailable from USCIS select MCQ and repeat question to to see options</h3>"+""+resp_div_html;
+              // google.script.run.withSuccessHandler(function (html) {$$ ('out2').innerHTML = html }).get_html_from_file ("reference");
+              
+              }
+            else 
+              voice_prompt({what:el+next, row_num:item['row_num'] })
+            
+          }
+        
+        else {
+            $$ ('out1').innerHTML ="<h3>Question:"+ next +"<br> "+ item['options'][0] + "</h3>"+resp_div_html;
+            
+            if (audio_absent) {
+               
+               google.script.run.withSuccessHandler(function (html) {$$ ('out2').innerHTML = html }).get_html_from_file ("reference");
+       
+            } else {
+               $$('out2').innerHTML = make_mcq_options_html(item);
+            
+            }
+            
+            out3.style.visibility="hidden"
+         
+          
+          }
+          $$ ("status").innerHTML = ""; 
+          $$ ("status").innerHTML = "<H3>"+ sessionStorage.getItem("not_done").split(',').length + " question(s) left to try </h3>"; 
+        }
+      
+      
+      else {
+        $$ ("status").innerHTML = "<h3>You are Done</h3>"; 
+        $$ ('out1').innerHTML =""
+        $$ ('out2').innerHTML =""
+        
+      
+      }
+      
+    
+  
+  }).getQuizItem ('MCQ_TG_AQ_fixing', next);
+  
+}
+
+
+
+
+
+
+function voice_prompt (instruction) {
+   if (instruction['synth']) {
+     disable_entries(true); // disable buttons
+   
+     say_things (instruction['what']);
+   }
+   else {
+     var audio_message = $$ (instruction['what']);
+     disable_entries(true); // disable buttons
+   
+     audio_message.play();
+     
+     audio_message.addEventListener("ended", function() { 
+      //release  buttons  
+      disable_entries(false); 
+      $$ ('out2').innerHTML = ""
+      showInfo('info_start')
+      out3.style.visibility="visible"
+             
+      
+     });
+   
+   
+   }
+   out3.style.visibility="hidden"
+   current_row=instruction["row_num"];
+   showInfo('')
+   $$('out1').innerHTML =""
+   $$('out2').innerHTML =""
+   var img_html = "<img src='https://i.giphy.com/CKOhLpXkopUYw.gif'/>"
+   $$ ('out2').innerHTML =img_html
+          
+  
+
+}
+
+
+function say_things (string) {
+  
+  var msg = new SpeechSynthesisUtterance();
+  var voices = window.speechSynthesis.getVoices();
+  msg.voice = voices[0]; // Note: some voices don't support altering params
+  msg.voiceURI = 'native';
+  msg.volume = 1; // 0 to 1
+  msg.rate = 1; // 0.1 to 10
+  msg.pitch = 0; //0 to 2
+  msg.lang = 'en-US';
+ 
+  msg.text = string;
+  speechSynthesis.speak(msg);
+  
+  
+  msg.addEventListener("end", function() { 
+      //release  buttons  
+      disable_entries(false); 
+      $$ ('out2').innerHTML = ""
+      showInfo('info_start')
+      out3.style.visibility="visible"
+             
+      
+   });
+     
+  
+}
+
+
+
+
+function disable_entries (bool) {
+   $$ ('english_play').disabled=bool;
+   $$('spanish_play').disabled=bool;
+   $$ ('repeat').disabled=bool;
+
+}
+
+
+
+
+function check_answer (ans) {
+      
+      // if ans and opt checked then bingo
+      
+      if ($$ ('opt'+ans).checked){
+        $$ ('resp_div').innerHTML = "<h1>Bingo!!!</h1>";
+        $$("bingo1").play ();
+        
+        }
+      else { 
+         $$ ('resp_div').innerHTML = "<h2>Oops</h2>";
+         $$("oops").play ();
+        
+      }
+    
+
+    }
+
+
+
+function titleCase(str) {
+  return str.toLowerCase().split(' ').map(function(word) {
+    return word.replace(word[0], word[0].toUpperCase());
+  }).join(' ');
+}
+
+function make_mcq_options_html (item) {
+
+
+ var html ="";
+ var correct = item['ans_pos'];
+ //console.log(current_correct);
+ html = "<h3>Select one of the following </h3>";
+ html+= "<input type ='radio' name='answer' id = 'opt1'/><label for = 'opt1'> " + item['options'][1] + "</label><br>";
+ html+= "<input type ='radio' name='answer' id = 'opt2'/><label for = 'opt2'> " + item['options'][2] + "</label><br>";
+ html+= "<input type ='radio' name='answer' id = 'opt3'/><label for = 'opt3'> " + item['options'][3] + "</label><br>";
+ html+= "<input type ='radio' name='answer' id = 'opt4'/><label for = 'opt4'> " + item['options'][4] + "</label><br>";
+ html+= "<button onclick=check_answer("+ correct + ") type='button' class='btn btn-primary'>Submit</button>"
+ 
+  return html;
+
+}
+
+
+
+
+
+
+
+</script>
+
+
+
+
+

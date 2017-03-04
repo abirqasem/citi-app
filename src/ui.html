@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+    <!-- Use a templated HTML printing scriptlet to import common stylesheet -->
+    <?!= HtmlService.createHtmlOutputFromFile('Stylesheet').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('libs').getContent(); ?>
+    <?!= HtmlService.createHtmlOutputFromFile('code').getContent(); ?> 
+    <?!= HtmlService.createHtmlOutputFromFile('audio').getContent(); ?> 
+
+  </head>
+  <body>
+    
+   <div class="container" id="mainsec">
+<!--   <div class="row">
+      <div class="jumbotron"  id="title"><h2>U.S. Citizenship and Immigration Services Citizenship <br> Civic Question: Study Aid</h2></div>
+   </div>-->
+<!-- Row 1  checked -->
+    <div class="row" id='question_area'>
+     <div class="col-xs-6" id="left">
+     
+     <div class="well">
+       <button id="spanish_play" type="button" class="btn btn-primary">Próxima pregunta</button>
+       <button id="english_play" type="button" class="btn btn-primary" >Next Question</button>
+         <label class ="radion-inline"> <input id="voice_yes" type="radio" checked=true name="interaction_type" value="Voice" />Voice<br /> </label>
+         <label class ="radion-inline"> <input id="mcq_yes" type="radio" name="interaction_type" value="MCQ" />MCQ<br /></label>  
+     </div>
+
+<!--reference https://timoh6.github.io/WebAppSecQuiz/ -->
+     <div class="well">
+       <button  id="repeat" type="button" class="btn btn-primary">Repita por favor/Repeat Please</button>
+       </div>
+       
+    
+    </div> <!-- end left -->
+   </div>
+</div>
+<script>
+
+</script>
+<script id="handlers">
+
+
+
+$$("question_area").onclick = function(event) {
+console.log("hello")
+  var src
+  var what = $$("voice_yes").checked ? "v":"m";
+
+  
+  src = event.target || event.srcElement; // it should be the latter for most browser? ##followup
+  console.log("%s %s", src.id, "here")
+  switch (src.id) {
+  
+    case "spanish_play": play_next_question (1,what);break;
+    case "english_play": play_next_question (2,what);break;
+    case "repeat": play_next_question (0,what)
+  
+  }
+
+};
+
+
+
+</script>
+
+
+     <div class="col-xs-6" id="right">
+     <div class="well" id="status"><h3>100 questions left to try </h3></div>
+     </div> <!-- end right -->
+
+    
+
+
+<!--    </div> <!-- end Row 2 -->
+    
+    
+    <div id="output" class="row outliner">
+
+      <div class="col-xs-4" id="out1"></div>
+    
+       <div class="col-xs-4" id="out2"></div>
+       <div class="col-xs-4" id="out3">
+       
+       
+    <div class="right">
+    <button id="start_button" onclick="startButton(event)">
+     <img id="start_img" src="https://raw.githubusercontent.com/GoogleChrome/webplatform-samples/master/webspeechdemo/mic.gif" alt="Start"></button>
+    </div>
+
+   <div id="results">
+     <span id="final_span" class="final"></span>
+     <span id="interim_span" class="interim"></span>
+     <p>
+    </div>
+
+    <div class="center">
+    <div class="sidebyside" style="text-align:right">
+     <button id="answer_button" class="button" onclick="answerButton()">
+      Check My Answer</button>
+    </div>
+    <p>
+   </div>
+
+       </div> <!-- out 3--> 
+</div> <!-- row output-->     
+
+
+<!--</div> <!--end container-->
+
+<script>out3.style.visibility="hidden"</script>
+
+   <div id="info">
+     <p id="info_start">Click on the microphone icon and begin speaking.</p>
+     <p id="info_speak_now">Speak now.</p>
+     <p id="info_no_speech">No speech was detected. You may need to adjust your
+     <a href="//support.google.com/chrome/bin/answer.py?hl=en&amp;answer=1407892">microphone settings</a>.</p>
+     <p id="info_no_microphone" style="display:none">
+     No microphone was found. Ensure that a microphone is installed and that
+     <a href="//support.google.com/chrome/bin/answer.py?hl=en&amp;answer=1407892">
+     microphone settings</a> are configured correctly.</p>
+     <p id="info_allow">Click the "Allow" button above to enable your microphone.</p>
+     <p id="info_denied">Permission to use microphone was denied.</p>
+     <p id="info_blocked">Permission to use microphone is blocked. To change,
+     go to chrome://settings/contentExceptions#media-stream</p>
+     <p id="info_upgrade">Web Speech API is not supported by this browser.
+     Upgrade to <a href="//www.google.com/chrome">Chrome</a>
+     version 25 or later.</p>
+    </div> <!-- info -->
+ 
+<?!= HtmlService.createHtmlOutputFromFile('vr').getContent(); ?> 
+   
+  </body>
+</html>
+
+
+
+
